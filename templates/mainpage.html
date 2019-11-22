@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+  <title>CollabScrolls</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+  <style>
+  	.btn {          
+      margin:10px;
+    }
+		body{
+			background: url({% static 'bg5.jpg' %});
+			background-repeat: no-repeat;
+			background-size: cover;
+		}
+		#text{
+			border-radius: 25px;
+			background-color: rgba(0, 0, 0, 0.8);
+			margin-right :25%;
+			margin-left:25%;
+			font-family: Verdana, Geneva, sans-serif;
+			color: #FFF;
+			bottom: 0px;
+			z-index: 1;
+}
+		}
+  </style>
+</head>
+
+<body>
+
+<nav class="navbar navbar-inverse">
+	<div class="container-fluid">
+		<div class="navbar-header">
+			<label class="navbar-brand">CollabScrolls</label>
+		</div>
+		<ul class="nav navbar-nav navbar-right">
+			<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#signup">SIGN UP</button>
+			<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#login">LOGIN</button>
+		</ul>
+	</div>
+</nav>
+
+<div class="container">
+ <!-- The Modal for SIGN IN-->
+  <div class="modal" id="signup">
+    <div class="modal-dialog">
+      <div class="modal-content">
+      
+        	<!-- Modal Header -->
+        	<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal">&times;</button>
+          		<h4 class="modal-title">NEW USER</h4>
+         		
+        	</div>
+        
+        <!-- Modal body -->
+        	<div class="modal-body">
+            	<form method="post" action="{% url 'signUp' %}">
+            		{% csrf_token %}
+            		<div class="form-group">
+            			<label for="nameofuser">Login ID</label>
+            			<input type="text" class="form-control" id="username" name="LOGIN_ID" placeholder="Enter unique username ">
+            		</div>
+
+            		<div class="form-group">
+              			<label for="password">Password</label>
+              			<input type="password" class="form-control" id="password" name="PASSWORD" aria-describedby="help" placeholder="Enter password">
+              			<small id="help" class="form-text text-muted">We'll never share your password with anyone else.</small>
+              		</div>
+			
+			
+
+
+                <div class="form-group">
+                    <label for="Email">Email address</label>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="Enter email">
+                </div>
+
+			<div class="form-group">
+            			<label for="nameofuser">Preferred Name</label>
+            			<input type="text" class="form-control" id="name" name="name" placeholder="Enter preferred name ">
+            		</div>
+
+            		<div class="form-group">
+                		<label for="University">University/College Name</label>
+                		<input type="text" class="form-control" id="universityname" name="institution" placeholder="Enter College/University">
+            		</div>
+
+
+                <div class="form-group">
+                    <label for="University">Profession</label>
+                    <input type="text" class="form-control" id="Professionname" name="profession" placeholder="Enter profession">
+                </div>
+
+            		
+              
+            		<button class="btn btn-primary" type="submit">Sign Up</button>
+
+            		<button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+           		</form>
+        	</div>  
+
+      </div>
+    </div>
+  </div>
+  <!-- END OF SIGNUP MODAL-->
+
+ <!-- The Modal for LOGIN--> <!-- The Modal for LOGIN-->
+<div class="modal" id="login">
+    <div class="modal-dialog">
+      <div class="modal-content">
+      
+        <!-- Modal Header -->
+        <div class="modal-header">
+	<button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">LOGIN</h4>
+          
+        </div>
+        
+        <!-- Modal body -->
+        <div class="modal-body">
+        	<form method="post" action="{% url 'login' %}">
+        		{% csrf_token %}
+        		<div class="form-group">
+        			<label>Enter the Username</label>
+        			<input type="text" class="form-control" name="LOGIN_ID" placeholder="Enter username">
+        		</div>
+        		<div class="form-group">
+        			<label>Enter the Password</label>
+        			<input type="password" class="form-control" name="PASSWORD" placeholder="Enter password">
+        		</div> 
+            <button class="btn btn-primary" type="submit" name="login_user" >LOGIN</button>
+
+            <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+            </form>
+        </div>  
+      </div>
+    </div>
+  </div>
+<!-- END OF LOGIN MODAL-->
+
+</div>
+<div id="text">
+<center>
+		<br>
+	<h3> CollabIt! </h3>
+  <br>
+	<p>CollabIt is a web application that provides a single place for multiple users of different roles to collaborate and work on research papers.</p>
+  <br>
+
+</center>
+</div>
+<div id="ask" class="w3-modal" style="display:none">
+	<div class="w3-modal-content" style="width:50%;">
+		<div class="w3-container">
+          <span onclick="document.getElementById('ask').style.display='none'" class="w3-button w3-display-topright">&times;</span>
+          <h3 style="color:red;"> {{error}} !! </h3>
+       	</div>
+    </div>
+</div>
+
+<script>
+  {%if error%} 
+   var c=document.getElementById('ask');
+   c.style.display='block';
+{%endif%}
+ </script>	
+
+</body>
+</html>

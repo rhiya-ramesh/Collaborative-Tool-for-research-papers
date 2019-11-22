@@ -1,0 +1,180 @@
+<html>
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS -->
+    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+  	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+  	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <title>New Document</title>
+
+    <style>
+    	.container.shift{margin-top:5%;}
+    </style>
+    
+</head>
+<body>
+		<nav class="navbar navbar-inverse">
+				<div class="container-fluid">
+					<div class="navbar-header">
+						<label class="navbar-brand">CollabScrolls</label>
+					</div>
+					<ul class="nav navbar-nav navbar-right">
+						<a href="{% url 'data' LOGIN_ID %}" class="navbar-brand" >Go to Homepage</a>
+					</ul>
+				</div>
+			</nav>
+
+{%if error%}
+       <h4 style="color:red;text-align:center;">{{error}}</h2>
+{%endif%}
+
+<div class="container shift">
+	<h2 id="heading" class="text-center">New Document Form</h2>
+	<form method="post" action="{% url 'new' LOGIN_ID %}">
+	{% csrf_token %}
+	  <div class="form-group">
+	    <label for="nameofdocument">Enter the name of the Document</label>
+	    <input type="text" class="form-control" id="documentname" onkeypress="obj.getTerm()" name="docname" placeholder="Document name ">
+	    <table border="0" cellpadding="0">
+	    <tr><td></td><td><div id="container"></td></div></tr>
+		</table>
+	  </div>
+	
+	<div class="form-group">
+		<label for="choose">Do You want to be the reviewer or collaborator</label>
+		<br/>
+    <label class="radio-inline">
+      <input type="radio" name="opt" value="collaborator" onclick="add_reviewer()" checked>Collaborator
+    </label>
+    <label class="radio-inline">
+      <input type="radio" name="opt" value="reviewer" onclick="remove_reviewer()">Reviewer
+    </label>
+	</div>
+
+	<div class="form-group reviewername" >
+	    <label for="nameofreviewer">Add the Reviewer</label>
+	    <input type="text" class="form-control"name="reviewer" placeholder="Reviewer name ">
+	 </div>
+	<div class="form-group" id="multiplecollab">
+	    	<label for="nameofcollaborator">Add the collaborators</label>
+	    	<div class="input-group">
+	    	<input type="text" class="form-control" id="collaboratorsname" name="collaborator1" placeholder="Collaborator's name ">   
+			<div class="input-group-btn">
+				<button class="btn btn-success" type="button" onclick="collaborator_field()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button>
+			</div>
+
+		</div>
+		<br/>
+	</div>     
+    <div>
+	<!--<button class="btn btn-primary" onclick="reOrder()">Create</button>-->
+	<button class="btn btn-primary" name="submit" type="submit" value="submit">Create</button>
+	</div>
+	</form>
+	
+</div>
+</body>
+</html>
+<script>
+	var obj = {
+		xhr:new XMLHttpRequest(),
+			getTerm:function(){
+				
+				console.log("in getTerm")
+				if(this.timer){
+					clearTimeout(this.timer)
+				}
+				this.timer=setTimeout(obj.sendTerm,1000);
+			},
+			sendTerm:function(){
+				console.log("In sendTerm");
+				obj.search=document.getElementById("documentname");
+				obj.container=document.getElementById("container");
+				obj.xhr.onreadystatechange=obj.showResult;
+				obj.xhr.open("POST","{% url 'suggest' %}",true);
+				obj.xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      			obj.xhr.setRequestHeader("X-CSRFToken","{{ csrf_token }}");
+				obj.xhr.responseType="json";
+				obj.xhr.send("title="+obj.search.value);
+			},
+			showResult:function(){
+				if(this.readyState==4 && this.status==200){
+					var resobj = this.response;
+					if(resobj.length==0){
+						obj.search.style.backgroundColor="#ffcccc";
+						obj.search.style.fontStyle="italic";
+						obj.container.style.display="none";
+					}
+					else{
+						obj.search.style.backgroundColor="white";
+						obj.search.style.fontStyle="";
+						obj.populateTitle(resobj);
+					}
+				}
+			},
+			populateTitle:function(resO){
+				obj.container.innerHTML="";
+				for(i in resO){
+					var iDiv = document.createElement("div");
+					iDiv.style="border:1px solid black";
+					iDiv.onclick=function(){ obj.search.value = resO[i]; obj.container.innerHTML=""; };
+					iDiv.innerHTML=resO[i];
+					iDiv.className="titles";
+					obj.container.appendChild(iDiv);
+				}
+				obj.container.style.display="block";
+			}
+	}
+
+
+	var collab_review="none";
+	var room = 1;
+function collaborator_field() {
+    room++;
+    var objTo = document.getElementById('multiplecollab')
+    var divtest = document.createElement("div");
+	divtest.setAttribute("class", "form-group removeclass"+room);
+	var rdiv = 'removeclass'+room;
+	var cnt='collaborator'+room;
+    divtest.innerHTML = '<div class="input-group"><input type="text" class="form-control" id="collaboratorsname" name="collaborator'+(room)+'" placeholder="collaborators name33 "><div class="input-group-btn"><button class="btn btn-danger" type="button" onclick="remove_collaborator_field('+ room +');"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></button></div></div>';
+    objTo.appendChild(divtest)
+}
+   function remove_collaborator_field(rid) {
+	   $('.removeclass'+rid).remove();
+   }
+
+   function remove_reviewer(e){
+   	   //console.log(e.target)
+   	   //collab_review="review";
+	   $('.reviewername').hide();
+   }
+   function add_reviewer(e){
+   	   //console.log(e.target)
+   	   //collab_review="collab";
+	   $('.reviewername').show();
+   }
+
+   function reOrder(){
+   		var xhr= new XMLHttpRequest();
+   		xhr.open("POST","{% url 'new' LOGIN_ID %}",true);
+   		xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+   		xhr.setRequestHeader("X-CSRFToken","{{ csrf_token }}");
+   		var fd=new FormData();
+   		/*fd.append("docname",document.getElementById("documentname").value);
+   		if(collab_review=="review"){
+   			fd.append("reviewer",true);
+
+   		}*/
+   		fd.append("csrfmiddlewaretoken","{{ csrf_token }}");
+		fd.append("docname","First_Doc");
+		fd.append("opt","collaborator");
+		fd.append("reviewer","Priya");
+		fd.append("collaborator1","Preeti");
+		xhr.send(fd);
+	
+   }
+</script>

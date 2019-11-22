@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Documents</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+</head>
+  
+<body>
+    <nav class="navbar navbar-inverse">
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <label class="navbar-brand">CollabScrolls</label>
+          </div>
+          <ul class="nav navbar-nav navbar-right">
+              <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Welcome {{LOGIN_ID}}<b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                      <li><a href="{% url 'login' %}">Log out</a></li>
+                  </ul>
+              </li>
+              
+          </ul>
+        </div>
+      </nav>
+<div class="container">
+<a class="btn btn-success" href="{% url 'new' LOGIN_ID %}" style="float:right">CREATE NEW DOCUMENT</a> <br/><br/>
+<div class="outer">
+      <h1 class="bg-info">CONTRIBUTING</h1>
+        {% if not COLLABORATOR %}
+          <h4 style="text-align:center;color:grey">You don't have any documents yet</h4>
+        {% endif %}
+        {% for DOCUMENT in COLLABORATOR %}
+          <ul class="pagination">
+          {% for VERSION in DOCUMENT %}
+          {% if VERSION.version == 1.0 %}
+          <h4 >{{VERSION.docname}}</h4>
+          {% endif %}
+            <li>
+              <a href="{% url 'editor' LOGIN_ID VERSION.docID VERSION.version 'Contributor'%}">
+                v {{VERSION.version}}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+        <br/>
+        {% endfor %}
+        
+</div>
+
+<h1 class="bg-info">REVIEWING</h1>
+{% if not REVIEWER %}
+          <h4 style="text-align:center;color:grey">You don't have any documents yet</h4>
+{% endif %}
+{% for DOCUMENT in REVIEWER %}
+  <ul class="pagination">
+  {% for VERSION in DOCUMENT %}
+    {% if VERSION.version == 1.0 %}
+    <h4 >{{VERSION.docname}}</h4>
+    {% endif %}
+    <li>
+      <a href="{% url 'editor' LOGIN_ID VERSION.docID VERSION.version 'Reviewer'%}">
+        v {{VERSION.version}}
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+<br/>
+{% endfor %}
+</div>
+</body>
+</html>

@@ -1,0 +1,515 @@
+<html>
+<head>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"> </script>
+  <link href="https://cdn.quilljs.com/1.3.4/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.4/quill.js"></script>
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+  <style>
+    #snow-container {
+      height: 70%;
+      width: 100%;
+    }
+    #comment-container{
+      float: right;
+      width: 40%;
+      /*height: 850px;  only for demonstration, should be removed */
+      background: #ccccff;
+      padding: 20px;
+      margin-top: -850px;
+    }
+    #initial_editor{
+      height: 100%;
+      width: 100%;
+    }
+    #initial_nav{
+      display:none;
+    }
+    #small-button{
+      margin-bottom: 5px;
+    }
+    #reply-button{
+      margin-bottom: 5px;
+      margin-left: 220px;
+    }
+    #cmntfrm, #replyfrm{
+      visibility: hidden;
+    }
+    #SAVE{
+      display:none;
+    }
+  </style>
+</head>
+<script>
+  $(window).unload(function() {
+    $.ajax({url:self.attr("href"), async:false});
+  });
+  $(document).ready(function() {
+    //alert("{{role}}");
+    var toolbarOptions = [
+      ["bold", "italic", "underline", "strike"], // toggled buttons
+      // ['blockquote'],
+      [{ list: "ordered" }, { list: "bullet" }],
+      [{ script: "sub" }, { script: "super" }], // superscript/subscript
+      [{ indent: "-1" }, { indent: "+1" }], // outdent/indent
+      [{ direction: "rtl" }], // text direction
+
+      [{ size: ["small", false, "large", "huge"] }], // custom dropdown
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+
+      [{ color: [] }, { background: [] }], // dropdown with defaults from theme
+      [{ font: [] }],
+      [{ align: [] }],
+
+      ["clean"] // remove formatting button
+    ];
+    {% for x in document %}
+      //alert("{{lockedUser}}");
+      //alert("{{LOGIN_ID}}");
+      var flag = 0,flag2 = 0;
+      {% if latestVersion == x.version and role == "Contributor" %}
+        //alert("here1")
+        flag = 1;
+        {% if lock == 0 or lockedUser == LOGIN_ID %}
+          flag2 = 1;
+          var apprBtn = document.getElementById("approveButton");
+          apprBtn.style.display = "none";
+          console.log("ifbody")
+          console.log({{latestVersion}})
+          console.log({{x.version}})
+          quill = new Quill("#snow-container", {
+            placeholder: "Compose an epic...",
+            modules: {
+              toolbar: toolbarOptions
+            },
+            theme: "snow"
+          });
+          var content=document.querySelector('input[name=contents]');
+          json_old=JSON.stringify(quill.getContents());
+          setInterval(function(){
+            var content=document.querySelector('input[name=contents]');
+            json=JSON.stringify(quill.getContents());
+            if(json!=json_old){
+              json_old=json;
+              localStorage.setItem("record",json_old);
+              //console.log(window.value);
+            }
+          },5000);
+          {% if x %}
+            json={{x.content|safe}}
+            //setInterval(function(){quill.setContents(window.value);},5000);
+            //var record= localStorage.getItem("record");
+            //setInterval(function(){console.log(record);},5000);
+            quill.setContents(json);
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      
+      if(flag==0 || flag2==0)
+      {
+        
+        var saveBtn = document.getElementById("saveButton");
+        saveBtn.style.display = "none";
+        var apprBtn = document.getElementById("approveButton");
+        //console.log(record);
+        {% if role == "Contributor" %}
+          apprBtn.style.display = "none";
+        {% else %}
+          {% if approved == True %} 
+            //alert("approved")
+            apprBtn.innerHTML = "Approved";
+            apprBtn.className = "w3-button w3-green";
+            //apprBtn.disabled = true;
+            apprBtn.type = "button";
+            apprBtn.onclick = function(){};
+          {% endif %}
+          {% if approvedDiffVersion %}
+            apprBtn.disabled = true;
+          {% endif %}
+      	{% endif %}
+        //console.log("window_val 127: ", window.value);
+        {% if latestVersion == x.version and lock == 1 and role == "Contributor" %}
+          window.alert("Document is already being edited. Opening in ReadOnly Mode");
+          /*setTimeout(function(){
+            //window.alert=function(){};
+            window.location.reload(1);
+          },5000);*/
+        {% endif %}
+        console.log("elsebody")
+        console.log({{latestVersion}})
+        console.log({{x.version}})
+        quill = new Quill("#snow-container", {
+          readOnly:true,
+          placeholder: "Compose an epic...",
+          modules: {
+            toolbar: toolbarOptions
+          },
+          theme: "snow"
+        });
+        {% if x %}
+          json={{x.content|safe}}
+          var record= localStorage.getItem("record");
+          record=JSON.parse(record);
+          console.log("After parsing:",record);
+          quill.setContents(record);
+          setInterval(function(){var record= localStorage.getItem("record");record=JSON.parse(record);quill.setContents(record);},5000);
+        {% endif %}
+      }
+
+      /*{% if x %}
+        json={{x.content|safe}}
+        //setInterval(function(){quill.setContents(record);},5000);
+        quill.setContents(record);
+      {% endif %}  */
+    {% endfor %}
+  })
+
+
+
+  function undo(c){
+    var undo_req = new XMLHttpRequest();
+      {% for doc in document %}
+      undo_req.open("POST","{% url 'vote' LOGIN_ID doc.docID doc.version role %}",true);
+      {% endfor %}
+      undo_req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      undo_req.setRequestHeader("X-CSRFToken","{{ csrf_token }}");
+      undo_req.send("undo_cmnt="+c);
+      undo_req.onreadystatechange=function (){
+        if(undo_req.status == 200 & undo_req.readyState==4)
+        {
+          $( "#"+c.toString() ).load(document.URL + " #"+c.toString() );
+      	}
+      	}
+      }
+
+  function displayTitle(){
+    var title_object=document.getElementById("title");
+    {% for x in document %}
+      title_object.innerHTML = "{{x.docname}}";
+    {% endfor %}
+  }
+
+  function addReply(comm_id){
+    document.getElementById('ask1').style.display='block';
+    window.value = comm_id;
+  }
+
+  function trial(){
+    var reply = document.getElementById("newinp1").value;
+    document.getElementById('ask1').style.display='none';
+    var rep_req = new XMLHttpRequest();
+
+      {% for doc in document %}
+      rep_req.open("POST","{% url 'vote' LOGIN_ID doc.docID doc.version role %}",true);
+      {% endfor %}
+      rep_req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      rep_req.setRequestHeader("X-CSRFToken","{{ csrf_token }}");
+      rep_req.send("input_reply="+reply+"&reply_com_id="+window.value);
+      rep_req.onreadystatechange=function (){
+        if(rep_req.status == 200 & rep_req.readyState==4)
+        {
+        	var i=window.value;
+          $( "#"+i.toString() ).load(document.URL + " #"+i.toString() );
+      	}
+      	}
+  }
+
+  function frmsubmit(){
+    var inputCmnt = document.getElementById("newinp").value;
+    document.getElementById('ask').style.display='none';
+    var com_req = new XMLHttpRequest();
+    var get_req = new XMLHttpRequest();
+    
+      {% for doc in document %}
+      com_req.open("POST","{% url 'vote' LOGIN_ID doc.docID doc.version role %}",true);
+      {% endfor %}
+      com_req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      com_req.setRequestHeader("X-CSRFToken","{{ csrf_token }}");
+      com_req.send("input_comment="+inputCmnt);
+      com_req.onreadystatechange=document.location.reload();
+      //com_req.onreadystatechange=get_req.send();
+      //location.reload();
+
+    
+      }
+  
+
+  function showComments(){
+    content=document.getElementById("comment_button").innerHTML;
+    if(content == "Show Comments")
+    {
+      var editor=document.getElementById("snow-container");
+      editor.style.height = "850px";
+      editor.style.width = "60%";
+      var nav = document.getElementById("initial_nav");
+      nav.setAttribute("id","comment-container");
+      document.getElementById("comment_button").innerHTML= "Hide Comments"
+    }
+    if(content == "Hide Comments")
+    {
+      var editor=document.getElementById("snow-container");
+      editor.style.height = "100%";
+      editor.style.width = "100%";
+      var nav = document.getElementById("comment-container");
+      nav.setAttribute("id","initial_nav");
+      document.getElementById("comment_button").innerHTML= "Show Comments"
+    }
+  }
+
+  function popup()
+  {
+    var saveDiv = document.getElementById("SAVE");
+    saveDiv.style.display = "block";
+  }
+
+  function submitFunc(){
+    // Populate hidden form on submit
+    var content=document.querySelector('input[name=contents]');
+    json=JSON.stringify(quill.getContents());
+    console.log(json);
+    content.value=json
+    document.getElementById("jug").submit();
+    alert("Document Saved");
+  }
+
+  function approveUpdate(){
+    // Populate hidden form on submit
+    var apprValue=document.querySelector('input[name=approve]');
+    apprValue.value="yes";
+    document.getElementById("jug").submit();
+  }
+
+  function disable_rjctbtn(e){
+    var parent =document.getElementById(e);
+      var btn = parent.childNodes[6];
+      if(btn.disabled == true)
+      {
+        btn.disabled = false;
+      }
+      else      
+      btn.disabled = true;
+      var accept_req = new XMLHttpRequest();
+
+      {% for doc in document %}
+      accept_req.open("POST","{% url 'vote' LOGIN_ID doc.docID doc.version role %}",true);
+      {% endfor %}
+      
+      accept_req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      accept_req.setRequestHeader("X-CSRFToken","{{ csrf_token }}");
+      accept_req.send("accept="+1+"&accepted_cmnt="+e);
+      accept_req.onreadystatechange=function (){
+        if(accept_req.status == 200 & accept_req.readyState==4)
+        {
+          $( "#"+e.toString() ).load(document.URL + " #"+e.toString() );
+        }
+        }
+  }
+
+  function disable_acptbtn(e){
+    var parent =document.getElementById(e);
+      var btn = parent.childNodes[4];
+      if(btn.disabled == true)
+      {
+        btn.disabled = false;
+      }
+      else      
+      btn.disabled = true;
+      var reject_req = new XMLHttpRequest();
+
+      {% for doc in document %}
+      reject_req.open("POST","{% url 'vote' LOGIN_ID doc.docID doc.version role %}",true);
+      {% endfor %}
+      reject_req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      reject_req.setRequestHeader("X-CSRFToken","{{ csrf_token }}");
+      reject_req.send("accept="+0+"&accepted_cmnt="+e);
+      reject_req.onreadystatechange=function (){
+        if(reject_req.status == 200 & reject_req.readyState==4)
+        {
+          $("#"+e.toString() ).load(document.URL + " #"+e.toString() );
+      	}
+      	}
+      }
+    
+    
+</script>
+
+<body>
+  <form id="jug" action="" method="post">
+    {% csrf_token %}
+    &nbsp;
+    <button id="comment_button" class="w3-button w3-black" onclick="showComments();" type="button">Show Comments</button>
+    &nbsp;
+    <button id="comment_button" class="w3-button w3-black" onclick="summarize();" type="button">Summarize</button>
+    &nbsp;
+    <button id="saveButton" class="w3-button w3-black" onclick="popup();" type="button">Save</button> 
+    <button id="approveButton" class="w3-button w3-black" onclick="approveUpdate();" type="submit">Approve</button>
+    <button id="homeButton" class="w3-button w3-black" onclick="location.href = '{% url 'data' LOGIN_ID %}';" type="button" style="float: right; margin-right: 2%;"> Home
+    </button>
+
+    <input name="contents" type="hidden"> 
+    <input name="approve" type="hidden">
+    {% if ReviewerName %}
+      <p>&nbsp; This document has been approved by {{ReviewerName}} </p>
+    {% endif %}
+    {% if approvedDiffVersion %}
+      <p>&nbsp;Version {{approvedDiffVersion}} has already been approved </p>
+    {% endif %}
+
+
+      <div id="SAVE">
+      <center> 
+      Would you like to save the changes as a new version?<br/>
+      <input type="radio" name="versioning" value="Yes"> Yes
+        <input type="radio" name="versioning" value="No" checked> No<br/><br/> 
+        <!-- <input type="hidden" name="next" value="{{ request.path }}">  -->
+      <button class="w3-button w3-black" onclick="submitFunc()" type="submit">Submit</button>
+      </center>
+    </div>
+    </form> 
+  <h2 id="title" align="center"></h2>
+  <script> displayTitle() </script>
+  
+  <div>
+    <div id="snow-container"></div>
+    <div id="trial">
+      <div id ="tr" > 
+    <nav id="initial_nav">
+      <button class="w3-button w3-black" onclick="document.getElementById('ask').style.display='block'">Add comment</button>
+      
+      {% for i in comment %} 
+
+      <div id={{i.commentID}} class = "w3-panel w3-border w3-border-black w3-hover-border-white">
+        <div class = "w3-panel w3-border-left w3-pale-yellow w3-border-red">
+        username: {{i.userID}} 
+      </div>
+           
+        {{ i.comment }}
+        {% if i.commentID not in personal_v %}
+        <br><button id="acpt" class="w3-button w3-black" onclick=disable_rjctbtn({{i.commentID}});>Accept</button>&nbsp;&nbsp;&nbsp; 
+        <button name="reject" class="w3-button w3-black" onclick=disable_acptbtn({{i.commentID}});>Reject</button>&nbsp;&nbsp;&nbsp;
+        
+        {% else %}
+        {% for l in personal_votes %} 
+      	
+      		
+      		{% if l.commentID.commentID == i.commentID %}
+      			
+      			{% if l.accept == 1 %} <br><button id="acpt" class="w3-button w3-green">Accepted</button>&nbsp;&nbsp;&nbsp;<button id="undo" class="w3-button w3-black" onclick=undo({{i.commentID}})>Undo</button>&nbsp;&nbsp;&nbsp;
+      				  {% endif %}
+      			{% if l.accept == 0 %} <br><button id="acpt" class="w3-button w3-red">Rejected</button>&nbsp;&nbsp;&nbsp;<button id="undo" class="w3-button w3-black" onclick=undo({{i.commentID}})>Undo</button>&nbsp;&nbsp;&nbsp; {% endif %}
+      			
+      		{% endif %}	
+      			
+      		
+      	{% endfor %} 
+      	{% endif %}
+        <button onclick=addReply({{i.commentID}}) class="w3-button w3-black">Reply</button>&nbsp;&nbsp;&nbsp;
+        <button onclick="document.getElementById('{{i.commentID}}+id01').style.display='block'" class="w3-button w3-black">View</button>
+        {% for j in replies %}
+        
+        {% for k in j %}
+
+        {% if i.commentID == k.commentID.commentID %}
+        <div class="w3-panel w3-border-left w3-pale-red w3-border-red">
+            <div id="r" class = "w3-panel w3-border-left w3-pale-yellow w3-border-red">
+            username: {{k.userID}}
+            </div>
+           {{k.reply }}
+          
+        </div>
+
+        <div id="vote" class="w3-panel w3-border-left w3-pale-red w3-border-red">
+      </div>
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+      </div>
+        <div id="{{i.commentID}}+id01" class="w3-modal">
+        <div class="w3-modal-content">
+        <div class="w3-container">
+        <span onclick="document.getElementById('{{i.commentID}}+id01').style.display='none'" class="w3-button w3-display-topright">&times;</span>
+      {% if i.commentID not in voted_comments %}
+      		<p> No reactions yet! </p>
+      {% else %}
+      {% for v in votes %} 
+      	{% for l in v %}
+      		
+      		{% if l.commentID.commentID == i.commentID %}
+      			
+      			{% if l.accept == 1 %} 
+      				<p>{{l.userID}} accepted </p>  {% endif %}
+      			{% if l.accept == 0 %} <p>{{l.userID}} rejected </p> {% endif %}
+      			
+      		{% endif %}	
+      			
+      		
+      {% endfor %} {% endfor %}
+      {% endif %}
+    </div>
+    </div>
+    </div>
+
+   {% endfor %}
+
+    </nav>
+  </div>
+  </div>
+</div>
+
+  <div id="ask" class="w3-modal">
+        <div class="w3-modal-content">
+        <div class="w3-container">
+        <span onclick="document.getElementById('ask').style.display='none'" class="w3-button w3-display-topright">&times;</span>
+      	<p> Enter here! </p>
+      	<textarea id="newinp" rows="6" cols="80" ></textarea><br>
+      	<button onclick="frmsubmit()" class="w3-button w3-black">Submit</button>
+    </div>
+    </div>
+    </div>
+
+   <div id="ask1" class="w3-modal">
+        <div class="w3-modal-content">
+        <div class="w3-container">
+        <span onclick="document.getElementById('ask1').style.display='none'" class="w3-button w3-display-topright">&times;</span>
+      	<p> Enter here! </p>
+      	<textarea id="newinp1" rows="6" cols="80" ></textarea><br>
+      	<button onclick="trial()" class="w3-button w3-black">Submit</button>
+    </div>
+    </div>
+    </div>
+
+    <div id="summary_modal" class="w3-modal">
+        <div class="w3-modal-content">
+        <div class="w3-container">
+        <span onclick="document.getElementById('summary_modal').style.display='none'" class="w3-button w3-display-topright">&times;</span>
+        <h2> Summary </h2>
+        <textarea id="summ_display" rows="10" cols="80" ></textarea><br>
+    </div>
+    </div>
+    </div>
+
+  </body>
+
+  <script>
+    function summarize(){
+      var content = document.getElementById("snow-container").textContent;
+      var sum_req = new XMLHttpRequest();
+      {% for doc in document %}
+      sum_req.open("POST","{% url 'summ' %}",true);
+      {% endfor %}
+      sum_req.onreadystatechange=function(){
+        if(sum_req.readyState == 4 && sum_req.status==200)
+        {
+          //alert("ready state is 4");
+          document.getElementById('summary_modal').style.display='block';
+          document.getElementById('summ_display').innerHTML = sum_req.responseText;
+        //console.log(sum_req.responseText);
+        }
+      };
+      sum_req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      sum_req.setRequestHeader("X-CSRFToken","{{ csrf_token }}");
+      sum_req.send("content="+content); 
+    }
+
+  </script>
+</html>
